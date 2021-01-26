@@ -1,6 +1,5 @@
 package com.maurobanze.klean
 
-import android.util.Log
 import com.maurobanze.klean.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +27,7 @@ import kotlinx.coroutines.withContext
  * TODO: Consider having UiViewModel work exclusively with specific [UiAction] and [Change] subtypes,
  * similarly to how it only works with a specific [UiState]. Type safety.
  */
-abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>) {
+abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>? = null) {
 
     public var currentState: State = initialState
         private set
@@ -38,12 +37,18 @@ abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>) 
     private val vmScope = CoroutineScope(Dispatchers.Default)
     private val mutex = Mutex()
 
+    private var logger = Logger()
+
     /**
      * This is useful in situations in which the ViewModel does not actually emmit a state
      * update to the attached Ui, because the action received didn't actually cause a change.
      * In such cases, while testing, it's still useful to assert that the state didn't change.
      */
     public var testModeActive = false
+        set(value) {
+            logger = Logger(value)
+            field = value
+        }
 
     /**
      * Called when the UiViewModel receives an action from the Ui.
@@ -57,7 +62,7 @@ abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>) 
      * Dispatches an action to this [UiViewModel]. It triggers [onActionReceived].
      */
     public fun dispatchAction(uiAction: UiAction) {
-        //TODO: log
+        logger.logVerbose("Ui ACTION: ${uiAction.javaClass.simpleName}")
         onActionReceived(uiAction)
     }
 
@@ -121,6 +126,7 @@ abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>) 
      * receive state updates.
      */
     public fun registerUi(ui: Ui<State>) {
+        require(this.ui == null) { "A Ui is already registered. UiViewModel currently only supports a single Ui" }
         this.ui = ui
     }
 
@@ -138,8 +144,6 @@ abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>) 
     protected abstract fun onDetachUi()
 
 
-
-
     /**
      * Use this method to request a change to the current state based on the outcome of a task.
      * It updates the current state, and dispatches:
@@ -151,7 +155,7 @@ abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>) 
      * is active.
      */
     public fun dispatchChange(change: Change) {
-        Log.v(Logger.TAG, "CHANGE: ${change.javaClass.simpleName}")
+        logger.logVerbose("CHANGE: ${change.javaClass.simpleName}")
 
         // executes state updates on a worker thread
         vmScope.launch {
@@ -165,10 +169,11 @@ abstract class UiViewModel<State : UiState>(initialState: State, ui: Ui<State>) 
                     return@withLock
                 }
 
-                Log.v(
-                    Logger.TAG, "State Update: \nOLD STATE: $currentState\n" +
+                logger.logVerbose(
+                    "State Update: \nOLD STATE: $currentState\n" +
                             "NEW STATE: $newState"
                 )
+
                 val oldState = currentState
                 currentState =
                     newState //state transition. Only place in which currentState is modified

@@ -1,7 +1,5 @@
 package com.maurobanze.klean
 
-import android.util.Log
-
 /**
  * Describes a UI component that wants to be plugged into our logic system.
  * These would typically be Fragments/Activities in Android, UIController (I think?) in iOS,
@@ -16,17 +14,10 @@ interface Ui<State : UiState> {
     fun renderState(uiState: State)
 
     fun dispatchStateUpdate(uiState: State) {
-        Log.v(Logger.TAG, "Ui RENDER: \n$uiState\n")
         renderState(uiState)
     }
 
     fun dispatchAction(uiAction: UiAction) {
-
-        val viewModel = viewModel
-        if (viewModel != null) {
-            Log.v(Logger.TAG, "Ui ACTION: ${uiAction.javaClass.simpleName}")
-            viewModel.dispatchAction(uiAction)
-        }
-
+        viewModel?.dispatchAction(uiAction)
     }
 }

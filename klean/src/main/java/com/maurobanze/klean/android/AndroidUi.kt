@@ -24,6 +24,10 @@ interface AndroidUi<State : UiState> : Ui<State>, LifecycleObserver {
         lifecycle.addObserver(this)
     }
 
+    fun detachLifecycleFromUi(lifecycle: Lifecycle) {
+        lifecycle.removeObserver(this)
+    }
+
     /**
      * INTERNAL API
      * Receives the "ON_DESTROY" callback from the attached lifecycle, and detaches this Ui from

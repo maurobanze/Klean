@@ -1,8 +1,16 @@
 package com.maurobanze.klean
 
-class Logger {
+import android.util.Log
+
+class Logger(private var testModeActive: Boolean = false) {
 
     companion object {
         const val TAG = "Klean"
+    }
+    
+    fun logVerbose(message: String) {
+        if (!testModeActive) {
+            Log.v(TAG, message)
+        }
     }
 }
